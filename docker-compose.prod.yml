@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: jata-mongodb-prod
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: jata
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - jata-network
+    # Only expose internally, not to host
+    expose:
+      - "27017"
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: jata-backend-prod
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGO_URI=mongodb://mongodb:27017/jata
+      - CORS_ORIGIN=http://localhost
+    expose:
+      - "5000"
+    depends_on:
+      - mongodb
+    networks:
+      - jata-network
+
+  # Frontend React App with Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: jata-frontend-prod
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - jata-network
+
+networks:
+  jata-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
